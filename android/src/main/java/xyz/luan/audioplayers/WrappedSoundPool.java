@@ -27,6 +27,9 @@ public class WrappedSoundPool extends Player implements SoundPool.OnLoadComplete
 
     private float volume = 1.0f;
 
+    private double volumeLeft = 1.0;
+    private double volumeRight = 1.0;
+
     private Integer soundId;
 
     private Integer streamId;
@@ -102,6 +105,32 @@ public class WrappedSoundPool extends Player implements SoundPool.OnLoadComplete
                 self.soundId = soundPool.load(getAudioPath(url, isLocal), 1);
             }
         }).start();
+    }
+
+    /**
+     * This method is not complete.
+     * @param volumeLeft
+     * @param volumeRight
+     */
+    @Override
+    public void setVolumeLR(double volumeLeft, double volumeRight) {
+        if (this.volumeLeft != volumeLeft || this.volumeRight != volumeRight ) {
+            this.volumeLeft = volumeLeft;
+            this.volumeRight = volumeRight;
+            // if (!this.released) {
+            //     this.player.setVolume((float) volumeLeft, (float) volumeRight);
+            // }
+        }
+    }
+
+    @Override
+    public double getVolumeLeft(){
+        return this.volumeLeft;
+    }
+
+    @Override
+    public double getVolumeRight(){
+        return this.volumeRight;
     }
 
     @Override

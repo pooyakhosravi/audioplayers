@@ -13,6 +13,8 @@ public class WrappedMediaPlayer extends Player implements MediaPlayer.OnPrepared
 
     private String url;
     private double volume = 1.0;
+    private double volumeLeft = 1.0;
+    private double volumeRight = 1.0;
     private boolean respectSilence;
     private ReleaseMode releaseMode = ReleaseMode.RELEASE;
 
@@ -51,6 +53,27 @@ public class WrappedMediaPlayer extends Player implements MediaPlayer.OnPrepared
             this.player.setLooping(this.releaseMode == ReleaseMode.LOOP);
             this.player.prepareAsync();
         }
+    }
+
+    @Override
+    public void setVolumeLR(double volumeLeft, double volumeRight) {
+        if (this.volumeLeft != volumeLeft || this.volumeRight != volumeRight ) {
+            this.volumeLeft = volumeLeft;
+            this.volumeRight = volumeRight;
+            if (!this.released) {
+                this.player.setVolume((float) volumeLeft, (float) volumeRight);
+            }
+        }
+    }
+
+    @Override
+    public double getVolumeLeft(){
+        return this.volumeLeft;
+    }
+
+    @Override
+    public double getVolumeRight(){
+        return this.volumeRight;
     }
 
     @Override

@@ -88,6 +88,12 @@ public class AudioplayersPlugin implements MethodCallHandler {
                 player.setVolume(volume);
                 break;
             }
+            case "setVolumeLR": {
+                final double volumeLeft = call.argument("volumeLeft");
+                final double volumeRight = call.argument("volumeRight");
+                player.setVolumeLR(volumeLeft, volumeRight);
+                break;
+            }
             case "setUrl": {
                 final String url = call.argument("url");
                 final boolean isLocal = call.argument("isLocal");

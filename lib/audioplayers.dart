@@ -310,6 +310,11 @@ class AudioPlayer {
     return _invokeMethod('setVolume', {'volume': volume});
   }
 
+  /// Sets the volume for left and right channels (ampliutde). 0.0 is mute and 1.0 is max, the rest is linear interpolation.
+  Future<int> setVolumeLR(double volumeLeft, double volumeRight) {
+    return _invokeMethod('setVolumeLR', {'volumeLeft': volumeLeft, 'volumeRight': volumeRight});
+  }
+
   /// Sets the release mode.
   ///
   /// Check [ReleaseMode]'s doc to understand the difference between the modes.

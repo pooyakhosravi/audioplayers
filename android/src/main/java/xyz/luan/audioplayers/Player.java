@@ -20,6 +20,12 @@ abstract class Player {
 
     abstract void setVolume(double volume);
 
+    abstract void setVolumeLR(double volumeLeft, double volumeRight); 
+
+    abstract double getVolumeLeft();
+
+    abstract double getVolumeRight();
+
     abstract void configAttributes(boolean respectSilence);
 
     abstract void setReleaseMode(ReleaseMode releaseMode);
