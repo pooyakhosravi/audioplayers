@@ -4,6 +4,8 @@ import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Build;
+import android.os.PowerManager;
+import android.content.Context;
 
 import java.io.IOException;
 
@@ -16,6 +18,7 @@ public class WrappedMediaPlayer extends Player implements MediaPlayer.OnPrepared
     private double volumeLeft = 1.0;
     private double volumeRight = 1.0;
     private boolean respectSilence;
+    private boolean stayAwake;
     private ReleaseMode releaseMode = ReleaseMode.RELEASE;
 
     private boolean released = true;
@@ -87,11 +90,17 @@ public class WrappedMediaPlayer extends Player implements MediaPlayer.OnPrepared
     }
 
     @Override
-    void configAttributes(boolean respectSilence) {
+    void configAttributes(boolean respectSilence, boolean stayAwake, Context context) {
         if (this.respectSilence != respectSilence) {
             this.respectSilence = respectSilence;
             if (!this.released) {
                 setAttributes(player);
+            }
+        }
+        if (this.stayAwake != stayAwake) {
+            this.stayAwake = stayAwake;
+            if (!this.released && this.stayAwake) {
+                this.player.setWakeMode(context, PowerManager.PARTIAL_WAKE_LOCK);
             }
         }
     }

@@ -191,9 +191,9 @@ class AudioPlayer {
   PlayerMode mode;
 
   /// Creates a new instance and assigns an unique id to it.
-  AudioPlayer({this.mode = PlayerMode.MEDIA_PLAYER}) {
+  AudioPlayer({this.mode = PlayerMode.MEDIA_PLAYER, this.playerId}) {
     this.mode ??= PlayerMode.MEDIA_PLAYER;
-    playerId = _uuid.v4();
+    this.playerId ??= _uuid.v4();
     players[playerId] = this;
   }
 
@@ -215,7 +215,7 @@ class AudioPlayer {
   /// Plays an audio.
   ///
   /// If [isLocal] is true, [url] must be a local file system path.
-  /// If [isLocal] is true, [url] must be a remote URL.
+  /// If [isLocal] is false, [url] must be a remote URL.
   Future<int> play(
     String url, {
     bool isLocal = false,
@@ -223,10 +223,12 @@ class AudioPlayer {
     // position must be null by default to be compatible with radio streams
     Duration position,
     bool respectSilence = false,
+    bool stayAwake = false,
   }) async {
     isLocal ??= false;
     volume ??= 1.0;
     respectSilence ??= false;
+    stayAwake ??= false;
 
     final int result = await _invokeMethod('play', {
       'url': url,
@@ -234,6 +236,7 @@ class AudioPlayer {
       'volume': volume,
       'position': position?.inMilliseconds,
       'respectSilence': respectSilence,
+      'stayAwake': stayAwake,
     });
 
     if (result == 1) {
@@ -299,6 +302,7 @@ class AudioPlayer {
 
   /// Moves the cursor to the desired position.
   Future<int> seek(Duration position) {
+    _positionController.add(position);
     return _invokeMethod('seek', {'position': position.inMilliseconds});
   }
 
@@ -325,14 +329,46 @@ class AudioPlayer {
     );
   }
 
+  /// Sets the playback rate - call this after first calling play() or resume(). Works only on iOS for now
+  ///
+  /// iOS has limits between 0.5 and 2x
+  /// not sure if that's changed recently.
+  Future<int> setPlaybackRate({double playbackRate = 1.0}) {
+    return _invokeMethod('setPlaybackRate', {'playbackRate': playbackRate});
+  }
+
+  /// Sets the notification bar for lock screen and notification area in iOS for now.
+  ///
+  /// Specify atleast title
+  Future<dynamic> setNotification(
+      {String title,
+      String albumTitle = '',
+      String artist = '',
+      String imageUrl = '',
+      Duration forwardSkipInterval = const Duration(seconds: 30),
+      Duration backwardSkipInterval = const Duration(seconds: 30),
+      Duration duration,
+      Duration elapsedTime}) {
+    return _invokeMethod('setNotification', {
+      'title': title,
+      'albumTitle': albumTitle,
+      'artist': artist,
+      'imageUrl': imageUrl,
+      'forwardSkipInterval': forwardSkipInterval?.inSeconds ?? 30,
+      'backwardSkipInterval': backwardSkipInterval?.inSeconds ?? 30,
+      'duration': duration?.inSeconds ?? 0,
+      'elapsedTime': elapsedTime?.inSeconds ?? 0
+    });
+  }
+
   /// Sets the URL.
   ///
   /// Unlike [play], the playback will not resume.
   ///
   /// The resources will start being fetched or buffered as soon as you call
   /// this method.
-  Future<int> setUrl(String url, {bool isLocal: false}) {
-    return _invokeMethod('setUrl', {'url': url, 'isLocal': isLocal});
+  Future<int> setUrl(String url, {bool isLocal: false, bool respectSilence = false}) {
+    return _invokeMethod('setUrl', {'url': url, 'isLocal': isLocal, 'respectSilence': respectSilence});
   }
 
   /// Get audio duration after setting url.
@@ -342,6 +378,11 @@ class AudioPlayer {
   /// (it might take a while to download or buffer it if file is not local).
   Future<int> getDuration() {
     return _invokeMethod('getDuration');
+  }
+
+  // Gets audio current playing position
+  Future<int> getCurrentPosition() async {
+    return _invokeMethod('getCurrentPosition');
   }
 
   static Future<void> platformCallHandler(MethodCall call) async {
@@ -354,7 +395,7 @@ class AudioPlayer {
 
   static Future<void> _doHandlePlatformCall(MethodCall call) async {
     final Map<dynamic, dynamic> callArgs = call.arguments as Map;
-    _log('_platformCallHandler call ${call.method} ${callArgs}');
+    _log('_platformCallHandler call ${call.method} $callArgs');
 
     final playerId = callArgs['playerId'] as String;
     final AudioPlayer player = players[playerId];
@@ -400,11 +441,17 @@ class AudioPlayer {
   ///
   /// You must call this method when your [AudioPlayer] instance is not going to
   /// be used anymore.
-  dispose() {
-    if (!_playerStateController.isClosed) _playerStateController.close();
-    if (!_positionController.isClosed) _positionController.close();
-    if (!_durationController.isClosed) _durationController.close();
-    if (!_completionController.isClosed) _completionController.close();
-    if (!_errorController.isClosed) _errorController.close();
+  Future<void> dispose() async {
+    List<Future> futures = [];
+
+    if (!_playerStateController.isClosed)
+      futures.add(_playerStateController.close());
+    if (!_positionController.isClosed) futures.add(_positionController.close());
+    if (!_durationController.isClosed) futures.add(_durationController.close());
+    if (!_completionController.isClosed)
+      futures.add(_completionController.close());
+    if (!_errorController.isClosed) futures.add(_errorController.close());
+
+    await Future.wait(futures);
   }
 }
